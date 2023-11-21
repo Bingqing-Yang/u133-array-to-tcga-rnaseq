@@ -17,4 +17,11 @@ data <- esets$TCGAOVARIAN;
 exprs_data <-  exprs(data);
 dim(exprs_data); # [1] 21260   536
 
-qwrite(exprs_data, "tcga_ov_microarray_exprs.rds");
+annot <- phenoData(data);
+annot <- annot@data;
+
+stopifnot(colnames(exprs_data) == rownames(annot))
+
+qwrite(exprs_data, "./tcga_ov_microarray_exprs.rds");
+qwrite(data.frame("sample_name" = rownames(annot), annot),
+  "../../../../annot/pancan/tcga_ov_microarray_annot.tsv");
