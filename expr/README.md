@@ -8,8 +8,7 @@ script: `./pancan/get.sh`
 
 input: `./pancan/manifest/PanCan-General_Open_GDC-Manifest_2.txt` # TODO: we will need to upload the file
 
-outputs:
-TODO: add in precise files in each directory
+outputs: # TODO: add in precise files in each directory
 - `./00a32f7a-c85f-4f86-850d-be53973cbc4d/`
 - `./3586c0da-64d0-4b74-a449-5ff4d9136611/`
 - `./0f4f5701-7b61-41ae-bda9-2805d1ca9781/`
@@ -25,8 +24,6 @@ TODO: add in precise files in each directory
 - `./1c8cfe5f-e52d-41ba-94da-f15ea1337efc/`
 - `./fcbb373e-28d4-4818-92f3-601ede3da5e1/`
 
-```
-
 # Preprocess data
 ## TCGA data
 We will extract samples that have both U133 and RNA-seq data.
@@ -35,4 +32,3 @@ script: `./pancan/preprocess.R`
 
 # filter genes
 Rscript filter.R
-```
