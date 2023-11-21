@@ -1,5 +1,8 @@
 # Download raw data
 ## TCGA data
+Current PanCanAtlas contains only the RNA-seq data, thus we will be using other sources such as GEO to download the microarray data.
+
+### RNA-seq
 Ensure `gdc-client` is installed, otherwise, please refer to [gdc-client github](https://github.com/NCI-GDC/gdc-client) and [GDC Data Transfer Tool](https://gdc.cancer.gov/access-data/gdc-data-transfer-tool) for instruction on installation.
 
 Then we will download the raw TCGA dataset from PanCanAtlas.
@@ -23,6 +26,8 @@ outputs: # TODO: add in precise files in each directory
 - `./d82e2c44-89eb-43d9-b6d3-712732bf6a53/`
 - `./1c8cfe5f-e52d-41ba-94da-f15ea1337efc/`
 - `./fcbb373e-28d4-4818-92f3-601ede3da5e1/`
+
+### Microarray data
 
 # Preprocess data
 ## TCGA data
