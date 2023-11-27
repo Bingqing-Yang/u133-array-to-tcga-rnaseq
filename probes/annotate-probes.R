@@ -13,8 +13,9 @@ library(dplyr)
 #library(array2rnaseq)
 
 # for development only
+library(usethis)
 library(devtools)
-load_all("~/projects/r/array2rnaseq")
+load_all("../../array2rnaseq_R")
 
 
 db <- org.Hs.eg.db
@@ -84,5 +85,5 @@ head(probes.info)
 table(probes.info$keep)
 
 # write out probe annotation for all probes, indicating filter status
-qwrite(probes.info, "probes.rds");
+qwrite(probes.info, "probes_info.rds");
 
