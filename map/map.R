@@ -48,41 +48,18 @@ y <- rseq.f[which(models =='lm'), ]
 probes_lm <- probes[which(models =='lm'), ]
 models_lm <- select_models(x, y);
 
-# residual model is different
+# save model that the residual model based on lm
 fit <- array2rnaseq(x, y, models = models_lm)
-fit_loess <- array2rnaseq(x, y, models = models_lm)
-
-
 saveRDS(fit, "./fit_ls.rds")
-saveRDS(fit_loess, "./fit_loess.rds")
 
+# save model that the residual model based on loess
+fit_loess <- array2rnaseq(x, y, models = models_lm)
+saveRDS(fit_loess, "./fit_loess.rds")
 
 pred <- predict(fit$maps, x)
 pred_loess <- predict(fit_loess$maps, x)
 
-residual_plot(1, x, fit$maps)
-              
-              
-a <- fit$maps[[1]]$residuals
-b <- residuals(fit$maps[[1]]$model, type = "response", se.fit = TRUE)
-a$se.fit                                                       
-b$se.fit
-
-
-pred <- predict(fit$maps, x)
-
-for (i in 1:dim(x)[1]){
-  pic1 <- scatter(i, x, y, pred = pred)
-  pic2 <- scatter(i, x, y, pred = pred_loess)
-  grid.arrange(pic1, pic2, ncol = 2)
-  readline("Enter to contunue: ")
-}
-
-scatter(i, x, y, pred = pred)
-scatter(i, x, y, pred = pred_loess)
 ############ 将异方差数据plot， 观察是log(res^2) 和log(|res|)哪个好？
-
-
 hetero_idx <- fit$hetero_idx
 for (i in hetero_idx){
   res <- lm(y[i, ] ~ x[i, ])$residuals
@@ -112,12 +89,12 @@ for (i in hetero_idx){
   print(paste0("This is: ", i))
   readline("Enter to contunue: ")
 }
-####
-# problem: there are log(|res|) who appear nonlinear trend; 
+## summary:
+## 1. log(|res|) 比 log(res^2) 好
+## 2. problem: there are log(|res|) who appear nonlinear trend; 
 # index of genes:5, 12, 14, 129, 132, 193, 204
 
 ########## loess VS lm : lm(log(|res|) ~ x) VS loess(log(|res|) ~ x)
-
 hetero_idx <- fit$hetero_idx
 for (i in hetero_idx){
   model <- lm(y[i, ] ~ x[i, ])
@@ -143,7 +120,23 @@ for (i in hetero_idx){
   }
 
 
-################
+######
+
+## 看一下散点图based on lm vs loess of residual model 是否有差异
+pred <- predict(fit$maps, x)
+library(gridExtra)
+for (i in 1:dim(x)[1]){
+  pic1 <- scatter(i, x, y, pred = pred)
+  pic2 <- scatter(i, x, y, pred = pred_loess)
+  grid.arrange(pic1, pic2, ncol = 2)
+  readline("Enter to contunue: ")
+}
+## summary:
+## 实际上两者肉眼看没有什么区别，但是数据有差异
+## 生成的PI也是直线，不是曲线
+## 曲线好还是直线好呢？
+
+
 models_types <- select_models(marr.f, rseq.f);
 
 # Fit models
@@ -152,63 +145,42 @@ fits <- array2rnaseq(marr.f, rseq.f, models = models_types)
 # generate prediction interval
 pred <- predict(fits$maps, marr.f)
 
-# 看一下异方差的基因的ncvTest, 原本ols的残差图, WLS的残差图
-# 是否wls后ncvTest的p-value变大了,残差图均匀了
-
-
-# fits$hetero_idx
-# [1]  92 156 164 255 287 319 348 385 498 514 531 541 546 568 574 579 606 645 731 769 782 903 904
-# # 
-# 
-# fits$hetero_idx
-# [1]  92 156 164 255 287 319 348 385
-
-
-hetero_idx <- fits$hetero_idx # bptest(lm) < 0.05 
-num_lm <- which(models_types == "lm")  # num of lm fitted models
-
-
-# lm 模型中有些适合wls,也有可能wls后bptest依旧 < 0.05
-# 找出来wls后依旧<0.05的数据
-hetero_idx <- fit$hetero_idx
-unsolve_wls <- vector()
-unsolve_bptest <- vector()
-unsolve_r2 <- vector()
-for (i in hetero_idx){
-
-  bptest <- fit$maps[[i]]$bptest
-  if (bptest < 0.05){
-    r2 <- cor(x[i, ], y[i, ])^2
-    unsolve_r2 <- c(unsolve_r2, r2)
-    unsolve_wls <- c(unsolve_wls, i)
-    unsolve_bptest <- c(unsolve_bptest, bptest)
-    print(paste0("not resolved the follow genes:", i))
-  }
-}
-# index of genes that bptest(wls) < 0.05
-unsolve_wls  # 53  94 133 159 174 204 225 # 52  91 111 171 187 199 202 219
-unsolve_bptest # 49  88 107 164 176 187 190 207 # 55  99 122 183 198 210 214 231
-unsolve_r2 #48  86 104 166 181 197
-i <- 9
-plot(x[i, ], y[i, ])
-models_lm[i] # FABP4  PCK1 RAB25  KLK5  IGF2   WT1  LGR5
-# 输出数据的散点图就不是线性的呀，为什么这里models会分配到lm
-
-cor(x[i, ], y[i, ])^2
-
-model_i <- lm(y[i, ] ~ x[i, ]) 
-bptest(model_i) # 0.00000000
-plot(model_i, which = 1) # 异方差
-y_res <- log(model_i$residuals^2)
-model_res_i <- lm(y_res ~ x[i, ])
-plot(x[i, ], y_res)
-plot(model_res_i, which = 1) # 异方差
 
 # subset data-end ---------------------------------------------------------
-a <- marr.f[1000:nrow(marr.f), ]
-b <- rseq.f[1000:nrow(marr.f), ]
-c <- models[-c(1:1000)]
-maps <- array2rnaseq(a, b, models = c);
+
+
+
+x_scam <- marr.f[which(models =='scam'), ][1:10, ]
+y_scam <- rseq.f[which(models =='scam'), ][1:10, ]
+probes_scam <- probes[which(models =='scam'), ][1:10, ]
+models_scam <- select_models(x_scam, y_scam);
+
+# save model that the residual model based on lm
+fit_scam <- array2rnaseq(x_scam, y_scam, models = models_scam)
+saveRDS(fit, "./fit_ls.rds")
+
+# save model that the residual model based on loess
+fit_loess <- array2rnaseq(x, y, models = models_lm)
+saveRDS(fit_loess, "./fit_loess.rds")
+
+pred_scam <- predict(fit_scam$maps, x_scam)
+pred_loess <- predict(fit_loess$maps, x)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -243,8 +215,6 @@ summary(fves)
 saveRDS(maps, "../map/mapping.rds")
 write.table(preds, "../map/prediction_interval.txt", sep = "\t")
 write.table(models, "../map/model_type.txt", sep = "\t")
-
-
 
 
 
