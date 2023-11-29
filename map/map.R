@@ -6,13 +6,11 @@ library(dplyr)
 library(scam)
 
 # for production use
-#library(array2rnaseq)
+# library(array2rnaseq)
 
 # for development only
 library(devtools)
-
-
-load_all("../../array2rnaseq/R")
+load_all("../../array2rnaseq")
 
 # read in data
 probes <- qread("../probes/probes_info.rds");
@@ -34,96 +32,106 @@ J <- nrow(marr.f);
 
 models <- select_models(marr.f, rseq.f);
 table(models)
-# subset data-star --------------------------------------------------------
 
-# load_all("../../array2rnaseq/R")
-# # models <- models[1:1000]
-# marr.f <- marr.f[1:1000, ]
-# rseq.f <- rseq.f[1:1000, ]
-# probes <- probes[1:1000, ]
+# select data fitted on linear model -------------------------------------
 
-# 只筛选出来适合lm模型的数据
-x <- marr.f[which(models =='lm'), ]
-y <- rseq.f[which(models =='lm'), ]
+x_lm <- marr.f[which(models =='lm'), ]
+y_lm <- rseq.f[which(models =='lm'), ]
 probes_lm <- probes[which(models =='lm'), ]
-models_lm <- select_models(x, y);
+models_lm <- select_models(x_lm, y_lm);
 
 # save model that the residual model based on lm
-fit <- array2rnaseq(x, y, models = models_lm)
-saveRDS(fit, "./fit_ls.rds")
+fit_lm <- array2rnaseq(x_lm, y_lm, models = models_lm, residual_model = "lm")
+saveRDS(fit_lm, "./model/fit_lm.rds")
 
-# save model that the residual model based on loess
-fit_loess <- array2rnaseq(x, y, models = models_lm)
-saveRDS(fit_loess, "./fit_loess.rds")
+# # save model that the residual model based on loess
+fit_loess <- array2rnaseq(x_lm, y_lm, models = models_lm, residual_model = "loess")
+saveRDS(fit_loess, "./model/fit_loess.rds")
 
-pred <- predict(fit$maps, x)
-pred_loess <- predict(fit_loess$maps, x)
+# read model
+# fit_lm <- readRDS("./model/fit_lm.rds")
+# fit_loess <- readRDS("./model/fit_loess.rds")
 
-############ 将异方差数据plot， 观察是log(res^2) 和log(|res|)哪个好？
-hetero_idx <- fit$hetero_idx
+# predict interval for linear model
+pred_lm <- predict.array2rnaseq(fit_lm$maps, X = x_lm, new_data = x_lm)
+pred_loess <- predict.array2rnaseq(fit_loess$maps, x_lm, new_data = x_lm)
+
+
+# check: which is better: log(res^2) vs log(|res|) --------------------------------------------------------
+
+hetero_idx <- fit_lm$hetero_idx
+
 for (i in hetero_idx){
-  res <- lm(y[i, ] ~ x[i, ])$residuals
+  res <- lm(y_lm[i, ] ~ x_lm[i, ])$residuals
   log_res_abs <- log(abs(res) + 1e-5)
   log_res2 <- log(res^2 + 1e-5)
   
   par(mfrow = c(1, 2))
   
-  residual_model_log_2 <- lm(log_res2 ~ x[i, ])
+  residual_model_log_2 <- lm(log_res2 ~ x_lm[i, ])
   R2 <- summary(residual_model_log_2)$r.squared
   p_value <- anova(residual_model_log_2)$"Pr(>F)"[1]
-  plot(x[i, ], log_res2, main = paste0("R^2: ", round(R2,8), " p: ", round(p_value, 8)))
+  plot(x_lm[i, ], log_res2, main = paste0("R^2: ", round(R2,8), " p: ", round(p_value, 8)))
   abline(residual_model_log_2, col = "blue")
   
   
-  residual_model_log_abs <- lm(log_res_abs ~ x[i, ])
+  residual_model_log_abs <- lm(log_res_abs ~ x_lm[i, ])
   R2 <- summary(residual_model_log_abs)$r.squared
   p_value <- anova(residual_model_log_abs)$"Pr(>F)"[1]
-  # y_range <- par()$usr[3:4]
+  
   min_y <- min(range(log_res2), range(log_res_abs))
   max_y <- max(range(log_res2), range(log_res_abs))
   y_range <- c(min_y, max_y)
   
-  plot(x[i, ], log_res_abs,ylim = y_range, main = paste0("R^2: ", round(R2,8), " p: ", round(p_value, 8)))
+  plot(x_lm[i, ], log_res_abs,ylim = y_range, main = paste0("R^2: ", round(R2,8), " p: ", round(p_value, 8)))
   abline(residual_model_log_abs, col = "red")
-  
+
   print(paste0("This is: ", i))
   readline("Enter to contunue: ")
 }
+
+
+
 ## summary:
-## 1. log(|res|) 比 log(res^2) 好
+## 1. log(|res|) is better than log(res^2);
 ## 2. problem: there are log(|res|) who appear nonlinear trend; 
+## 3. negative slope
 # index of genes:5, 12, 14, 129, 132, 193, 204
 
-########## loess VS lm : lm(log(|res|) ~ x) VS loess(log(|res|) ~ x)
-hetero_idx <- fit$hetero_idx
+# check: lm(log(|res|) ~ x) VS loess(log(|res|) ~ x) -------------------------------------
+hetero_idx <- fit_lm$hetero_idx
 for (i in hetero_idx){
+  i = 2
+  x <- x_lm
+  y <- y_lm
+  
   model <- lm(y[i, ] ~ x[i, ])
   res <- model$residuals
   log_res_abs <- log(abs(res) + 1e-5)
   
-  res_model <- fit$maps[[i]]$loess$res_model
-  
   par(mfrow = c(1, 2))
+  
+  # residual model based on linear model
   plot(x[i, ], log_res_abs)
+  res_model_lm <- fit_lm$maps[[i]]$res_model$res_model  ###  改成res
   idx <- order(x[i, ])
-  y_hat_loess <- predict(res_model, x[i, ][idx])
-  lines(x[i, ][idx], y_hat_loess, col = "blue")
+  d <- data.frame(x = x[i, ][idx])
+  y_hat_lm <- predict(res_model_lm, d)
+  lines(d$x, y_hat_lm, col = "blue")
   
-  
+  # residual model based on loess
   plot(x[i, ], log_res_abs)
-  data_res_array <- data.frame(arraydata = x[i, ], log_res_abs = log_res_abs)
-  residual_model_log_abs <- lm(log_res_abs ~ arraydata, data = data_res_array)
-  abline(residual_model_log_abs, col = "red")
+  res_model_loess <- fit_loess$maps[[i]]$res_model$res_model
+  y_hat_loess <- predict(fit_loess$maps[[i]]$res_model$res_model, d)
+  lines(d$x, y_hat_loess, col = "red")
 
   readline("Press to continue: ")
 
-  }
+}
 
 
-######
+# log(|res|) scatter plot based on lm or loess -----------------------------------------------
 
-## 看一下散点图based on lm vs loess of residual model 是否有差异
-pred <- predict(fit$maps, x)
 library(gridExtra)
 for (i in 1:dim(x)[1]){
   pic1 <- scatter(i, x, y, pred = pred)
@@ -146,29 +154,33 @@ fits <- array2rnaseq(marr.f, rseq.f, models = models_types)
 pred <- predict(fits$maps, marr.f)
 
 
-# subset data-end ---------------------------------------------------------
 
 
-
-x_scam <- marr.f[which(models =='scam'), ][1:10, ]
-y_scam <- rseq.f[which(models =='scam'), ][1:10, ]
-probes_scam <- probes[which(models =='scam'), ][1:10, ]
+# scam -----------------------------------------------
+load_all("../../array2rnaseq")
+x_scam <- marr.f[which(models =='scam'), ][1:200, ]
+y_scam <- rseq.f[which(models =='scam'), ][1:200, ]
+probes_scam <- probes[which(models =='scam'), ][1:200, ]
 models_scam <- select_models(x_scam, y_scam);
 
 # save model that the residual model based on lm
-fit_scam <- array2rnaseq(x_scam, y_scam, models = models_scam)
-saveRDS(fit, "./fit_ls.rds")
+fit_scam_lm <- array2rnaseq(x_scam, y_scam, models = models_scam,  residual_model = "lm")
+saveRDS(fit_scam_lm, "./model/fit_scam_lm.rds")
 
 # save model that the residual model based on loess
-fit_loess <- array2rnaseq(x, y, models = models_lm)
-saveRDS(fit_loess, "./fit_loess.rds")
+fit_scam_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, residual_model = "loess")
+saveRDS(fit_scam_loess, "./model/fit_scam_loess.rds")
 
-pred_scam <- predict(fit_scam$maps, x_scam)
-pred_loess <- predict(fit_loess$maps, x)
-
-
+pred_scam_lm <- predict.array2rnaseq(fit_scam_lm$maps, X = x_scam, new_data = x_scam)
+pred_scam_loess <- predict.array2rnaseq(fit_scam_loess$maps, X = x_scam, new_data = x_scam)
 
 
+for (i in 1:dim(x_scam)[1]){
+  pic1 <- scatter(i, x_scam, y_scam, pred = pred_scam_lm)
+  # pic2 <- scatter(i, x_scam, y_scam, pred = pred_scam_loess)
+  # grid.arrange(pic1, pic2, ncol = 2)
+  readline("Enter to contunue: ")
+}
 
 
 
@@ -215,6 +227,7 @@ summary(fves)
 saveRDS(maps, "../map/mapping.rds")
 write.table(preds, "../map/prediction_interval.txt", sep = "\t")
 write.table(models, "../map/model_type.txt", sep = "\t")
+
 
 
 
