@@ -15,7 +15,7 @@ library(dplyr)
 # for development only
 library(usethis)
 library(devtools)
-load_all("../../array2rnaseq_R")
+load_all("../../array2rnaseq")
 
 
 db <- org.Hs.eg.db
