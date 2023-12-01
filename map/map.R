@@ -135,48 +135,48 @@ table(models)
 # index of genes:5, 12, 14, 129, 132, 193, 204
 
 # 3. check: lm(log(res^2) ~ x) VS loess(log(res^2) ~ x) -------------------------------------
-hetero_idx <- fit_lm$hetero_idx
-R2_lm <- NULL
-R2_loess <- NULL
-for (i in hetero_idx){
-
-  x <- x_lm
-  y <- y_lm
-  
-  model <- lm(y[i, ] ~ x[i, ])
-  res <- model$residuals
-  log_res2 <- log(res^2 + 1e-5)
-  
-  par(mfrow = c(1, 2))
-  
-  # residual model based on linear model
-  plot(x[i, ], log_res2)
-  res2_model_lm <- fit_lm$maps[[i]]$res_model$res_model  
-  idx <- order(x[i, ])
-  d <- data.frame(x = x[i, ][idx])
-  y_hat_lm <- predict(res2_model_lm, d)
-  lines(d$x, y_hat_lm, col = "blue")
-  
-  R2 <- summary(res2_model_lm)$r.squared
-  R2_lm <- c(R2_lm, R2)
-  
-  
-  # residual model based on loess
-  plot(x[i, ], log_res2)
-  res2_model_loess <- fit_loess$maps[[i]]$res_model$res_model
-  y_hat_loess <- predict(res2_model_loess, d)
-  lines(d$x, y_hat_loess, col = "red")
-
-  
-  R2_pseudo <- fev(y[i, ], y_hat_loess)
-  R2_loess <- c(R2_loess, R2_pseudo)
-  
-  readline("Press to continue: ")
-
-}
-# compare R^2 between lm and loess
-mean(R2_loess) # -42.47051
-mean(R2_lm) # 0.0365966
+# hetero_idx <- fit_lm$hetero_idx
+# R2_lm <- NULL
+# R2_loess <- NULL
+# for (i in hetero_idx){
+# 
+#   x <- x_lm
+#   y <- y_lm
+#   
+#   model <- lm(y[i, ] ~ x[i, ])
+#   res <- model$residuals
+#   log_res2 <- log(res^2 + 1e-5)
+#   
+#   par(mfrow = c(1, 2))
+#   
+#   # residual model based on linear model
+#   plot(x[i, ], log_res2)
+#   res2_model_lm <- fit_lm$maps[[i]]$res_model$res_model  
+#   idx <- order(x[i, ])
+#   d <- data.frame(x = x[i, ][idx])
+#   y_hat_lm <- predict(res2_model_lm, d)
+#   lines(d$x, y_hat_lm, col = "blue")
+#   
+#   R2 <- summary(res2_model_lm)$r.squared
+#   R2_lm <- c(R2_lm, R2)
+#   
+#   
+#   # residual model based on loess
+#   plot(x[i, ], log_res2)
+#   res2_model_loess <- fit_loess$maps[[i]]$res_model$res_model
+#   y_hat_loess <- predict(res2_model_loess, d)
+#   lines(d$x, y_hat_loess, col = "red")
+# 
+#   
+#   R2_pseudo <- fev(y[i, ], y_hat_loess)
+#   R2_loess <- c(R2_loess, R2_pseudo)
+#   
+#   readline("Press to continue: ")
+# 
+# }
+# # compare R^2 between lm and loess
+# mean(R2_loess) # -42.47051
+# mean(R2_lm) # 0.0365966
 
 # SUMMARY:
 # 1. R^2 of loess is less;
