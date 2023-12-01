@@ -42,15 +42,15 @@ models_lm <- select_models(x_lm, y_lm);
 
 # save model that the residual model based on lm
 fit_lm <- array2rnaseq(x_lm, y_lm, models = models_lm, residual_model = "lm")
-saveRDS(fit_lm, "./model/fit_lm.rds")
+saveRDS(fit_lm, "./models/fit_lm.rds")
 
 # # save model that the residual model based on loess
 fit_loess <- array2rnaseq(x_lm, y_lm, models = models_lm, residual_model = "loess")
-# saveRDS(fit_loess, "./model/fit_loess.rds")
+saveRDS(fit_loess, "./models/fit_loess.rds")
 
 # read model
-# fit_lm <- readRDS("./model/fit_lm.rds")
 # fit_loess <- readRDS("./model/fit_loess.rds")
+# fit_lm <- readRDS("./model/fit_lm.rds")
 
 # predict interval for linear model
 pred_lm <- predict.array2rnaseq(fit_lm$maps, X = x_lm, new_data = x_lm)
@@ -64,7 +64,7 @@ y <- y_lm[hetero_idx, ]
 library(lmtest)
 library(car)
 test_p <- data.frame()
-for (i in nrow(x)) {
+for (i in 1:nrow(x)) {
   par(mfrow = c(1, 2))
   model <- lm(y[i, ] ~ x[i, ])
   
@@ -80,9 +80,9 @@ for (i in nrow(x)) {
   aux_lm <- lm(model$residuals^2 ~ x[i, ])
   pchisq(ncol(x) * summary(aux_lm)$r.squared, 1, lower.tail=F)
   
-  #readline("Enter to continue: ")
+  readline("Enter to continue: ")
 }
-colnames(test_p) <- c("bptest", "white")
+colnames(test_p) <- c("bptest", "whitetest")
 mean(test_p$bptest)
 mean(test_p$white)
 
@@ -142,13 +142,13 @@ for (i in hetero_idx){
   
   model <- lm(y[i, ] ~ x[i, ])
   res <- model$residuals
-  log_res2 <- log(abs(res)^2 + 1e-5)
+  log_res2 <- log(res^2 + 1e-5)
   
   par(mfrow = c(1, 2))
   
   # residual model based on linear model
   plot(x[i, ], log_res2)
-  res2_model_lm <- fit_lm$maps[[i]]$res_model$res_model  ###  改成res
+  res2_model_lm <- fit_lm$maps[[i]]$res_model$res_model  
   idx <- order(x[i, ])
   d <- data.frame(x = x[i, ][idx])
   y_hat_lm <- predict(res2_model_lm, d)
@@ -159,16 +159,16 @@ for (i in hetero_idx){
   
   
   # residual model based on loess
-  plot(x[i, ], log_res_abs)
-  res_model_loess <- fit_loess$maps[[i]]$res_model$res_model
-  y_hat_loess <- predict(fit_loess$maps[[i]]$res_model$res_model, d)
+  plot(x[i, ], log_res2)
+  res2_model_loess <- fit_loess$maps[[i]]$res_model$res_model
+  y_hat_loess <- predict(res2_model_loess, d)
   lines(d$x, y_hat_loess, col = "red")
 
   
   R2_pseudo <- fev(y[i, ], y_hat_loess)
   R2_loess <- c(R2_loess, R2_pseudo)
   
-  #readline("Press to continue: ")
+  readline("Press to continue: ")
 
 }
 # compare R^2 between lm and loess
