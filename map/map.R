@@ -5,6 +5,8 @@ library(ggplot2)
 library(dplyr)
 library(scam)
 
+# install.packages(c("io", "ggplot2", "scam","devtools"), dependencies = TRUE)
+
 # for production use
 # library(array2rnaseq)
 
@@ -33,96 +35,97 @@ J <- nrow(marr.f);
 models <- select_models(marr.f, rseq.f);
 table(models)
 
-# select data fitted on linear model -------------------------------------
-
-x_lm <- marr.f[which(models =='lm'), ]
-y_lm <- rseq.f[which(models =='lm'), ]
-probes_lm <- probes[which(models =='lm'), ]
-models_lm <- select_models(x_lm, y_lm);
-
-# save model that the residual model based on lm
-fit_lm <- array2rnaseq(x_lm, y_lm, models = models_lm, residual_model = "lm")
-saveRDS(fit_lm, "./models/fit_lm.rds")
-
-# # save model that the residual model based on loess
-fit_loess <- array2rnaseq(x_lm, y_lm, models = models_lm, residual_model = "loess")
-saveRDS(fit_loess, "./models/fit_loess.rds")
-
-# read model
-# fit_loess <- readRDS("./model/fit_loess.rds")
-# fit_lm <- readRDS("./model/fit_lm.rds")
-
-# predict interval for linear model
-pred_lm <- predict.array2rnaseq(fit_lm$maps, X = x_lm, new_data = x_lm)
-pred_loess <- predict.array2rnaseq(fit_loess$maps, x_lm, new_data = x_lm)
-
-# 1. check: look at gene with heteroscedasticity ------------------------------------------------------------
-
-hetero_idx <- fit_lm$hetero_idx
-x <- x_lm[hetero_idx, ]
-y <- y_lm[hetero_idx, ]
-library(lmtest)
-library(car)
-test_p <- data.frame()
-for (i in 1:nrow(x)) {
-  par(mfrow = c(1, 2))
-  model <- lm(y[i, ] ~ x[i, ])
-  
-  # heteroscedasticity test
-  bptest_p <- bptest(model)$p.value
-  white_p <- ncvTest(model)$p
-  test_p <- rbind(test_p, c(bptest_p, white_p))
-  
-  plot(x[i, ], y[i, ], main = paste0("bptest_p: ", sprintf("%.3e", bptest_p), "   white_p: ", sprintf("%.3e", white_p)), cex.main = 0.8)
-  plot(model, which = 1)
-  
-  # bptest manually
-  aux_lm <- lm(model$residuals^2 ~ x[i, ])
-  pchisq(ncol(x) * summary(aux_lm)$r.squared, 1, lower.tail=F)
-  
-  readline("Enter to continue: ")
-}
-colnames(test_p) <- c("bptest", "whitetest")
-mean(test_p$bptest)
-mean(test_p$white)
-
-# 2. check: which is better: log(res^2) vs log(|res|) --------------------------------------------------------
-
-hetero_idx <- fit_lm$hetero_idx
-R2_res2 <- NULL
-R2_res <- NULL
-for (i in hetero_idx){
-  res <- lm(y_lm[i, ] ~ x_lm[i, ])$residuals
-  log_res_abs <- log(abs(res) + 1e-5)
-  log_res2 <- log(res^2 + 1e-5)
-  
-  par(mfrow = c(1, 2))
-  
-  # log(res^2)
-  residual_model_log_2 <- lm(log_res2 ~ x_lm[i, ])
-  R2 <- summary(residual_model_log_2)$r.squared
-  R2_res2 <- c(R2_res2, R2)
-  p_value <- anova(residual_model_log_2)$"Pr(>F)"[1]
-  plot(x_lm[i, ], log_res2, main = paste0("R^2: ", round(R2,8), " p: ", round(p_value, 8)))
-  abline(residual_model_log_2, col = "blue")
-  
-  # log(|res|)
-  residual_model_log_abs <- lm(log_res_abs ~ x_lm[i, ])
-  R2 <- summary(residual_model_log_abs)$r.squared
-  p_value <- anova(residual_model_log_abs)$"Pr(>F)"[1]
-  R2_res <- c(R2_res, R2)
-  
-  min_y <- min(range(log_res2), range(log_res_abs))
-  max_y <- max(range(log_res2), range(log_res_abs))
-  y_range <- c(min_y, max_y)
-  plot(x_lm[i, ], log_res_abs,ylim = y_range, main = paste0("R^2: ", round(R2,8), " p: ", round(p_value, 8)))
-  abline(residual_model_log_abs, col = "red")
-
-  print(paste0("This is: ", i))
-  # readline("Enter to contunue: ")
-}
-mean(R2_res) 
-mean(R2_res2) 
+# # select data fitted on linear model -------------------------------------
+# 
+# x_lm <- marr.f[which(models =='lm'), ]
+# y_lm <- rseq.f[which(models =='lm'), ]
+# probes_lm <- probes[which(models =='lm'), ]
+# models_lm <- select_models(x_lm, y_lm);
+# 
+# # save model that the residual model based on lm
+# fit_lm <- array2rnaseq(x_lm, y_lm, models = models_lm, residual_model = "lm")
+# saveRDS(fit_lm, "./models/fit_lm.rds")
+# 
+# # # save model that the residual model based on loess
+# fit_loess <- array2rnaseq(x_lm, y_lm, models = models_lm, residual_model = "loess")
+# saveRDS(fit_loess, "./models/fit_loess.rds")
+# 
+# # read model
+# # fit_loess <- readRDS("./model/fit_loess.rds")
+# # fit_lm <- readRDS("./model/fit_lm.rds")
+# 
+# # predict interval for linear model
+# pred_lm <- predict.array2rnaseq(fit_lm$maps, X = x_lm, new_data = x_lm)
+# pred_loess <- predict.array2rnaseq(fit_loess$maps, x_lm, new_data = x_lm)
+# 
+# # 1. check: look at gene with heteroscedasticity ------------------------------------------------------------
+# 
+# hetero_idx <- fit_lm$hetero_idx
+# x <- x_lm[hetero_idx, ]
+# y <- y_lm[hetero_idx, ]
+# library(lmtest)
+# library(car)
+# test_p <- data.frame()
+# for (i in 1:nrow(x)) {
+#   par(mfrow = c(1, 2))
+#   model <- lm(y[i, ] ~ x[i, ])
+#   
+#   # heteroscedasticity test
+#   bptest_p <- bptest(model)$p.value
+#   white_p <- ncvTest(model)$p
+#   test_p <- rbind(test_p, c(bptest_p, white_p))
+#   
+#   plot(x[i, ], y[i, ], main = paste0("bptest_p: ", sprintf("%.3e", bptest_p), "   white_p: ", sprintf("%.3e", white_p)), cex.main = 0.8)
+#   plot(model, which = 1)
+#   
+#   # bptest manually
+#   aux_lm <- lm(model$residuals^2 ~ x[i, ])
+#   pchisq(ncol(x) * summary(aux_lm)$r.squared, 1, lower.tail=F)
+#   
+#   readline("Enter to continue: ")
+# }
+# 
+# colnames(test_p) <- c("bptest", "whitetest")
+# mean(test_p$bptest)
+# mean(test_p$white)
+# 
+# # 2. check: which is better: log(res^2) vs log(|res|) --------------------------------------------------------
+# 
+# hetero_idx <- fit_lm$hetero_idx
+# R2_res2 <- NULL
+# R2_res <- NULL
+# for (i in hetero_idx){
+#   res <- lm(y_lm[i, ] ~ x_lm[i, ])$residuals
+#   log_res_abs <- log(abs(res) + 1e-5)
+#   log_res2 <- log(res^2 + 1e-5)
+#   
+#   par(mfrow = c(1, 2))
+#   
+#   # log(res^2)
+#   residual_model_log_2 <- lm(log_res2 ~ x_lm[i, ])
+#   R2 <- summary(residual_model_log_2)$r.squared
+#   R2_res2 <- c(R2_res2, R2)
+#   p_value <- anova(residual_model_log_2)$"Pr(>F)"[1]
+#   plot(x_lm[i, ], log_res2, main = paste0("R^2: ", round(R2,8), " p: ", round(p_value, 8)))
+#   abline(residual_model_log_2, col = "blue")
+#   
+#   # log(|res|)
+#   residual_model_log_abs <- lm(log_res_abs ~ x_lm[i, ])
+#   R2 <- summary(residual_model_log_abs)$r.squared
+#   p_value <- anova(residual_model_log_abs)$"Pr(>F)"[1]
+#   R2_res <- c(R2_res, R2)
+#   
+#   min_y <- min(range(log_res2), range(log_res_abs))
+#   max_y <- max(range(log_res2), range(log_res_abs))
+#   y_range <- c(min_y, max_y)
+#   plot(x_lm[i, ], log_res_abs,ylim = y_range, main = paste0("R^2: ", round(R2,8), " p: ", round(p_value, 8)))
+#   abline(residual_model_log_abs, col = "red")
+# 
+#   print(paste0("This is: ", i))
+#   readline("Enter to contunue: ")
+# }
+# mean(R2_res) 
+# mean(R2_res2) 
 
 
 ## summary:
@@ -175,65 +178,92 @@ for (i in hetero_idx){
 mean(R2_loess) # -42.47051
 mean(R2_lm) # 0.0365966
 
+# SUMMARY:
+# 1. R^2 of loess is less;
+
+
 # 4. log(|res|) scatter plot based on lm or loess -----------------------------------------------
 
-library(gridExtra)
-hetero_idx <- fit_lm$hetero_idx
-x[hetero_idx, ]
-
-for (i in 1:dim(x)[1]){
-  scatter(i, x[hetero_idx, ], y[hetero_idx, ], pred = pred_lm)
-  # pic2 <- scatter(i, x, y, pred = pred_loess)
-  # grid.arrange(pic1, pic2, ncol = 2)
-  readline("Enter to contunue: ")
-}
+# library(gridExtra)
+# 
+# for (i in 1:dim(x_lm)[1]){
+#   pic1 <- scatter(i, x_lm[i, ] , y_lm[i, ], pred = pred_lm)
+#   pic2 <- scatter(i, x_lm[i, ], y_lm[i, ], pred = pred_loess)
+#   grid.arrange(pic1, pic2, ncol = 2)
+#   readline("Enter to contunue: ")
+# }
 ## summary:
 ## 实际上两者肉眼看没有什么区别，但是数据有差异
 ## 生成的PI也是直线，不是曲线
 ## 曲线好还是直线好呢？
 
-
-models_types <- select_models(marr.f, rseq.f);
-
-# Fit models
-fits <- array2rnaseq(marr.f, rseq.f, models = models_types)
-
-# generate prediction interval
-pred <- predict(fits$maps, marr.f)
-
-
-
-
-# scam -----------------------------------------------
-load_all("../../array2rnaseq")
-x_scam <- marr.f[which(models =='scam'), ][1:200, ]
-y_scam <- rseq.f[which(models =='scam'), ][1:200, ]
-probes_scam <- probes[which(models =='scam'), ][1:200, ]
+# scam ------------------------------------------------------------------------------------------
+# select gene fitted on scam 
+#load_all("../../array2rnaseq")
+x_scam <- marr.f[which(models =='scam'), ]
+y_scam <- rseq.f[which(models =='scam'), ]
+probes_scam <- probes[which(models =='scam'), ]
 models_scam <- select_models(x_scam, y_scam);
+table(models_scam) # lm:0  scam: 10298
 
-# save model that the residual model based on lm
-fit_scam_lm <- array2rnaseq(x_scam, y_scam, models = models_scam,  residual_model = "lm")
-saveRDS(fit_scam_lm, "./model/fit_scam_lm.rds")
 
-# save model that the residual model based on loess
-fit_scam_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, residual_model = "loess")
-saveRDS(fit_scam_loess, "./model/fit_scam_loess.rds")
+# save scam model that the residual model based on lm 
+fit_scam_lm <- array2rnaseq(x_scam, y_scam, models = models_scam, residual_model = "lm")
+saveRDS(fit_scam_lm, "./models/fit_scam_lm.rds")
 
+
+# save scam model that the residual model based on loess
+fit_scam_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, residual_model = "lm")
+saveRDS(fit_scam_loess, "./models/fit_scam_loess.rds")
+
+
+# predict interval for scam
 pred_scam_lm <- predict.array2rnaseq(fit_scam_lm$maps, X = x_scam, new_data = x_scam)
-pred_scam_loess <- predict.array2rnaseq(fit_scam_loess$maps, X = x_scam, new_data = x_scam)
+pred_scam_loess <- predict.array2rnaseq(fit_scam_loess$maps, x_scam, new_data = x_scam)
 
 
-for (i in 1:dim(x_scam)[1]){
-  pic1 <- scatter(i, x_scam, y_scam, pred = pred_scam_lm)
-  # pic2 <- scatter(i, x_scam, y_scam, pred = pred_scam_loess)
-  # grid.arrange(pic1, pic2, ncol = 2)
-  readline("Enter to contunue: ")
+#### summary:
+# 1. 不需要关注基因是否存在异质性，因为同方差其实就是异质性的一个特例；
+# 2. 可以focus on 非线性的基因，肉眼看是否存在异质性，并且将其标记，记录；
+
+x <- x_scam
+y <- y_scam
+library(lmtest)
+library(car)
+R2_lm <- NULL
+for (i in 1:nrow(x)) {
+
+  # 画残差散点图
+  par(mfrow = c(1,2))
+
+  # 生成原始散点图
+  plot(x[i, ], y[i, ])
+  #scatter(i, x_scam, y_scam, pred = pred_scam_lm)
+  # 生成线性拟合残差的模型
+  res_model_lm <- fit_scam_lm$maps[[i]]$var_hat$res_model
+  R2 <- summary(res_model_lm)$r.squared
+  R2_lm <- c(R2_lm, R2)
+  p_value <- anova(res_model_lm)$"Pr(>F)"[1]
+  
+  # 生成残差散点图
+  log_res2 <- log(fit_scam_lm$maps[[i]]$model$residuals^2 + 1e-5)
+  plot(x[i, ], log_res2, main = paste0("R^2: ", sprintf("%.3e", R2), "  p_value: ", sprintf("%.3e", p_value)), cex.main = 0.8)
+  
+  # 生成残差的拟合线
+  idx <- order(x[i, ])
+  d <- data.frame(x = x[i, ][idx])
+  lines(d$x, predict(res_model_lm, newdata = d), col = "red", lwd = 2)
+  
+
+  # 画残差散点图
+  # 生成loess拟合的残差散点图
+  # 计算两种方法对残差图拟合的R^2
+  
+  # readline("Enter to continue: ")
 }
 
-
-#
-
-
+# mean(R2_lm)
+# hist(100*R2_lm, breaks = 100)
 
 
 
@@ -245,36 +275,36 @@ for (i in 1:dim(x_scam)[1]){
 
 
 
-# predictions
-plot(marr.f, preds$mean, pch=".")
-
-# calibration plot
-plot(preds$mean, rseq.f, pch=".", col=models)
-abline(a=0, b=1, col="grey")
-cor(c(preds$mean), c(rseq.f), use="complete.obs")
-
-# examine specific genes
-gene <- 64;
-plot(marr.f[gene, ], preds$mean[gene, ], pch=".")
-points(marr.f[gene, ], preds$lower[gene, ], pch=".", col="blue")
-points(marr.f[gene, ], preds$upper[gene, ], pch=".", col="blue")
-points(marr.f[gene, ], rseq.f[gene, ], pch=".", col="red")
-
-# modeify J ——> 100
-rs <- unlist(lapply(1:100,
-  function(j) cor(rseq.f[j, ], preds$mean[j, ])
-));
-summary(rs)
-
-fves <- unlist(lapply(1:100,
-  function(j) fve(rseq.f[j, ], preds$mean[j, ])
-));
-summary(fves)
-
-
-saveRDS(maps, "../map/mapping.rds")
-write.table(preds, "../map/prediction_interval.txt", sep = "\t")
-write.table(models, "../map/model_type.txt", sep = "\t")
+# # predictions
+# plot(marr.f, preds$mean, pch=".")
+# 
+# # calibration plot
+# plot(preds$mean, rseq.f, pch=".", col=models)
+# abline(a=0, b=1, col="grey")
+# cor(c(preds$mean), c(rseq.f), use="complete.obs")
+# 
+# # examine specific genes
+# gene <- 64;
+# plot(marr.f[gene, ], preds$mean[gene, ], pch=".")
+# points(marr.f[gene, ], preds$lower[gene, ], pch=".", col="blue")
+# points(marr.f[gene, ], preds$upper[gene, ], pch=".", col="blue")
+# points(marr.f[gene, ], rseq.f[gene, ], pch=".", col="red")
+# 
+# # modeify J ——> 100
+# rs <- unlist(lapply(1:100,
+#   function(j) cor(rseq.f[j, ], preds$mean[j, ])
+# ));
+# summary(rs)
+# 
+# fves <- unlist(lapply(1:100,
+#   function(j) fve(rseq.f[j, ], preds$mean[j, ])
+# ));
+# summary(fves)
+# 
+# 
+# saveRDS(maps, "../map/mapping.rds")
+# write.table(preds, "../map/prediction_interval.txt", sep = "\t")
+# write.table(models, "../map/model_type.txt", sep = "\t")
 
 
 
