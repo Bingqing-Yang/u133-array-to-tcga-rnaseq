@@ -200,26 +200,32 @@ table(models)
 # scam ------------------------------------------------------------------------------------------
 # select gene fitted on scam 
 #load_all("../../array2rnaseq")
-x_scam <- marr.f[which(models =='scam'), ]
-y_scam <- rseq.f[which(models =='scam'), ]
-probes_scam <- probes[which(models =='scam'), ]
+x_scam <- marr.f[which(models =='scam'), ][1:1000, ]
+y_scam <- rseq.f[which(models =='scam'), ][1:1000, ]
+probes_scam <- probes[which(models =='scam'), ][1:1000, ]
 models_scam <- select_models(x_scam, y_scam);
 table(models_scam) # lm:0  scam: 10298
 
 
-# save scam model that the residual model based on lm 
-fit_scam_lm <- array2rnaseq(x_scam, y_scam, models = models_scam, residual_model = "lm")
-saveRDS(fit_scam_lm, "./models/fit_scam_lm.rds")
+# # save scam model that the residual model based on lm 
+fit_scam_r2_lm <- array2rnaseq(x_scam, y_scam, models = models_scam, res_type = "res2", model_type = "lm")
+fit_scam_r2_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, res_type = "res2", model_type = "loess")
+fit_scam_r_lm <- array2rnaseq(x_scam, y_scam, models = models_scam, res_type = "res_abs", model_type = "lm")
+fit_scam_r_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, res_type = "res_abs", model_type = "loess")
+# saveRDS(fit_scam_lm, "./models/fit_scam_lm.rds")
+
+# # save scam model that the residual model based on loess
+# fit_scam_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, residual_model = "scam")
+# saveRDS(fit_scam_loess, "./models/fit_scam_loess.rds")
 
 
-# save scam model that the residual model based on loess
-fit_scam_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, residual_model = "lm")
-saveRDS(fit_scam_loess, "./models/fit_scam_loess.rds")
-
-
+# fit_scam_lm <- readRDS("./models/fit_scam_lm_all.rds")
+# fit_scam_loess <- readRDS("./models/fit_scam_loess.rds")
 # predict interval for scam
-pred_scam_lm <- predict.array2rnaseq(fit_scam_lm$maps, X = x_scam, new_data = x_scam)
-pred_scam_loess <- predict.array2rnaseq(fit_scam_loess$maps, x_scam, new_data = x_scam)
+pred_scam_r2_lm <- predict.array2rnaseq(fit_scam_r2_lm$maps, new_data = x_scam, res_type = "res2", model_type = "lm")
+pred_scam_r2_loess <- predict.array2rnaseq(fit_scam_r2_loess$maps, new_data = x_scam, res_type = "res2", model_type = "loess")
+pred_scam_r_lm <- predict.array2rnaseq(fit_scam_r_lm$maps, new_data = x_scam, res_type = "res_abs", model_type = "lm")
+pred_scam_r_loess <- predict.array2rnaseq(fit_scam_r_loess$maps, new_data = x_scam, res_type = "res_abs", model_type = "loess")
 
 
 #### summary:
@@ -228,42 +234,111 @@ pred_scam_loess <- predict.array2rnaseq(fit_scam_loess$maps, x_scam, new_data = 
 
 x <- x_scam
 y <- y_scam
-library(lmtest)
-library(car)
-R2_lm <- NULL
-for (i in 1:nrow(x)) {
 
+R2_r2_lm <- NULL
+R2_r2_loess <- NULL
+R2_r_lm <- NULL
+R2_r_loess <- NULL
+
+for (i in 1:nrow(x)) {
+  
   # 画残差散点图
-  par(mfrow = c(1,2))
+  # par(mfrow = c(1,2))
 
   # 生成原始散点图
-  plot(x[i, ], y[i, ])
+  # plot(x[i, ], y[i, ])
   #scatter(i, x_scam, y_scam, pred = pred_scam_lm)
   # 生成线性拟合残差的模型
-  res_model_lm <- fit_scam_lm$maps[[i]]$var_hat$res_model
+  res2_model_lm <- fit_scam_r2_lm$maps[[i]]$res_model
+  R2 <- summary(res2_model_lm)$r.squared
+  R2_r2_lm <- c(R2_r2_lm, R2)
+  p_value <- anova(res2_model_lm)$"Pr(>F)"[1]
+  
+  
+  res2_model_loess <- fit_scam_r2_loess$maps[[i]]$res_model
+  res2_hat <- predict(res2_model_loess, x_scam[i, ])
+  res2_true <- fit_scam_r2_loess$maps[[i]]$res_model$y
+  R2 <- fev(res2_true ,res2_hat)
+  R2_r2_loess <- c(R2_r2_loess, R2)
+  
+  
+  res_model_lm <- fit_scam_r_lm$maps[[i]]$res_model
   R2 <- summary(res_model_lm)$r.squared
-  R2_lm <- c(R2_lm, R2)
+  R2_r_lm <- c(R2_r_lm, R2)
   p_value <- anova(res_model_lm)$"Pr(>F)"[1]
   
-  # 生成残差散点图
-  log_res2 <- log(fit_scam_lm$maps[[i]]$model$residuals^2 + 1e-5)
-  plot(x[i, ], log_res2, main = paste0("R^2: ", sprintf("%.3e", R2), "  p_value: ", sprintf("%.3e", p_value)), cex.main = 0.8)
   
-  # 生成残差的拟合线
-  idx <- order(x[i, ])
-  d <- data.frame(x = x[i, ][idx])
-  lines(d$x, predict(res_model_lm, newdata = d), col = "red", lwd = 2)
+  res_model_loess <- fit_scam_r_loess$maps[[i]]$res_model
+  res_hat <- predict(res_model_loess, x_scam[i, ])
+  res_true <- fit_scam_r_loess$maps[[i]]$res_model$y
+  R2 <- fev(res_true ,res_hat)
+  R2_r_loess <- c(R2_r_loess, R2)
+  # # 生成残差散点图
+  # log_res2 <- log(model$maps[[i]]$model$residuals^2 + 1e-5)
+  # # plot(x[i, ], log_res2, main = paste0("R^2: ", sprintf("%.3e", R2), "  p_value: ", sprintf("%.3e", p_value)), cex.main = 0.8)
+  # 
+  # # 生成残差的拟合线
+  # idx <- order(x[i, ])
+  # d <- data.frame(x = x[i, ][idx])
+  # # lines(d$x, predict(res_model_lm, newdata = d), col = "red", lwd = 2)
   
 
-  # 画残差散点图
-  # 生成loess拟合的残差散点图
-  # 计算两种方法对残差图拟合的R^2
+  
   
   # readline("Enter to continue: ")
 }
 
-# mean(R2_lm)
-# hist(100*R2_lm, breaks = 100)
+mean(R2_r2_lm)
+mean(R2_r2_loess)
+mean(R2_r_lm)
+mean(R2_r_loess)
+
+
+R2_data <- data.frame(
+  R2_r2_lm = R2_r2_lm,
+  R2_r2_loess = R2_r2_loess,
+  R2_r_lm = R2_r_lm,
+  R2_r_loess = R2_r_loess
+)
+
+write.csv(R2_data, file = "R2_data.csv", row.names = FALSE)
+
+
+# length(which(R2_lm > 0.1)) # 233
+# length(which(R2_lm > 0.2)) # 44
+# 
+# # which(R2_lm > 0.1)
+# # [1] 1309 1499 1808 1834 1929 1958
+# 
+# idx_R0.1 <- which(R2_lm > 0.1)
+# R2_lm0.1 <- R2_lm[idx_R0.1]
+# idx <- order(R2_lm0.1, decreasing = TRUE)
+# idx_dec_R0.1 <- idx_R0.1[idx]
+# 
+# # 2346  8441  5719  8306  2835  2477  2243  2945  8727  1929  2171  1808  9701  8710  
+# # 3039  3525  2040  5610  5659  3015  2413  9751  1309  2434  5092  5622  2292
+# 
+# i = 2243
+# plot(x[i, ], y[i, ])
+# idx <- order(x[i, ])
+# lines(x[i, ][idx], fit_scam_lm$maps[[i]]$model$fitted[idx], col = "red", lwd = 2)
+# 
+# scatter(i, x_scam, y_scam, pred = pred_scam_lm)
+# # df <- read.csv("my_data.csv")
+# R2_lm[i]
+# 
+# ### 对存在异方差的基因，画其原始散点图，残差图， res_model for lm, res_model for loess
+# 
+
+
+
+
+
+
+
+
+
+
 
 
 
