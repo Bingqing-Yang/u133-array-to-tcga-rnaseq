@@ -205,28 +205,44 @@ y_scam <- rseq.f[which(models =='scam'), ][1:1000, ]
 probes_scam <- probes[which(models =='scam'), ][1:1000, ]
 models_scam <- select_models(x_scam, y_scam);
 table(models_scam) # lm:0  scam: 10298
+saveRDS(x_scam, "./data/x_1000.rds")
+saveRDS(y_scam, "./data/y_1000.rds")
 
 
 # # save scam model that the residual model based on lm 
 fit_scam_r2_lm <- array2rnaseq(x_scam, y_scam, models = models_scam, res_type = "res2", model_type = "lm")
-fit_scam_r2_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, res_type = "res2", model_type = "loess")
 fit_scam_r_lm <- array2rnaseq(x_scam, y_scam, models = models_scam, res_type = "res_abs", model_type = "lm")
+fit_scam_r2_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, res_type = "res2", model_type = "loess")
 fit_scam_r_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, res_type = "res_abs", model_type = "loess")
-# saveRDS(fit_scam_lm, "./models/fit_scam_lm.rds")
+# saveRDS(fit_scam_r2_lm, "./models/fit_scam_r2_lm.rds")
+# saveRDS(fit_scam_r2_loess, "./models/fit_scam_r2_loess.rds")
+# saveRDS(fit_scam_r_lm, "./models/fit_scam_r_lm.rds")
+# saveRDS(fit_scam_r_loess, "./models/fit_scam_r_loess.rds")
 
-# # save scam model that the residual model based on loess
-# fit_scam_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, residual_model = "scam")
-# saveRDS(fit_scam_loess, "./models/fit_scam_loess.rds")
 
 
-# fit_scam_lm <- readRDS("./models/fit_scam_lm_all.rds")
-# fit_scam_loess <- readRDS("./models/fit_scam_loess.rds")
+fit_scam_r2_lm <- readRDS("./models/fit_scam_r2_lm.rds")
+fit_scam_r2_loess <- readRDS("./models/fit_scam_r2_loess.rds")
+fit_scam_r_lm <- readRDS("./models/fit_scam_r_lm.rds")
+fit_scam_r_loess <- readRDS("./models/fit_scam_r_loess.rds")
+
+
 # predict interval for scam
 pred_scam_r2_lm <- predict.array2rnaseq(fit_scam_r2_lm$maps, new_data = x_scam, res_type = "res2", model_type = "lm")
 pred_scam_r2_loess <- predict.array2rnaseq(fit_scam_r2_loess$maps, new_data = x_scam, res_type = "res2", model_type = "loess")
 pred_scam_r_lm <- predict.array2rnaseq(fit_scam_r_lm$maps, new_data = x_scam, res_type = "res_abs", model_type = "lm")
 pred_scam_r_loess <- predict.array2rnaseq(fit_scam_r_loess$maps, new_data = x_scam, res_type = "res_abs", model_type = "loess")
 
+saveRDS(pred_scam_r2_lm, "./pred/pred_scam_r2_lm.rds")
+saveRDS(pred_scam_r2_loess, "./pred/pred_scam_r2_loess.rds")
+saveRDS(pred_scam_r_lm, "./pred/pred_scam_r_lm.rds")
+saveRDS(pred_scam_r_loess, "./pred/pred_scam_r_loess.rds")
+
+
+pred_scam_r2_lm <- readRDS("./pred/pred_scam_r2_lm.rds")
+pred_scam_r2_loess <- readRDS("./pred/pred_scam_r2_loess.rds")
+pred_scam_r_lm <- readRDS("./pred/pred_scam_r_lm.rds")
+pred_scam_r_loess <- readRDS("./pred/pred_scam_r_loess.rds")
 
 #### summary:
 # 1. 不需要关注基因是否存在异质性，因为同方差其实就是异质性的一个特例；
@@ -242,19 +258,11 @@ R2_r_loess <- NULL
 
 for (i in 1:nrow(x)) {
   
-  # 画残差散点图
-  # par(mfrow = c(1,2))
-
-  # 生成原始散点图
-  # plot(x[i, ], y[i, ])
-  #scatter(i, x_scam, y_scam, pred = pred_scam_lm)
-  # 生成线性拟合残差的模型
   res2_model_lm <- fit_scam_r2_lm$maps[[i]]$res_model
   R2 <- summary(res2_model_lm)$r.squared
   R2_r2_lm <- c(R2_r2_lm, R2)
-  p_value <- anova(res2_model_lm)$"Pr(>F)"[1]
-  
-  
+
+
   res2_model_loess <- fit_scam_r2_loess$maps[[i]]$res_model
   res2_hat <- predict(res2_model_loess, x_scam[i, ])
   res2_true <- fit_scam_r2_loess$maps[[i]]$res_model$y
@@ -265,7 +273,7 @@ for (i in 1:nrow(x)) {
   res_model_lm <- fit_scam_r_lm$maps[[i]]$res_model
   R2 <- summary(res_model_lm)$r.squared
   R2_r_lm <- c(R2_r_lm, R2)
-  p_value <- anova(res_model_lm)$"Pr(>F)"[1]
+  
   
   
   res_model_loess <- fit_scam_r_loess$maps[[i]]$res_model
@@ -281,55 +289,26 @@ for (i in 1:nrow(x)) {
   # idx <- order(x[i, ])
   # d <- data.frame(x = x[i, ][idx])
   # # lines(d$x, predict(res_model_lm, newdata = d), col = "red", lwd = 2)
-  
+  # 
 
   
   
   # readline("Enter to continue: ")
 }
 
-mean(R2_r2_lm)
-mean(R2_r2_loess)
-mean(R2_r_lm)
-mean(R2_r_loess)
-
-
-R2_data <- data.frame(
+R2_summary <- data.frame(
   R2_r2_lm = R2_r2_lm,
   R2_r2_loess = R2_r2_loess,
   R2_r_lm = R2_r_lm,
-  R2_r_loess = R2_r_loess
+  R2_r_loess = R2_r_loess,
+  row.names = rownames(x)
 )
+# 
+write.csv(R2_summary, file = "./pred/R2_summary.csv", row.names = TRUE)
 
-write.csv(R2_data, file = "R2_data.csv", row.names = FALSE)
-
-
-# length(which(R2_lm > 0.1)) # 233
-# length(which(R2_lm > 0.2)) # 44
-# 
-# # which(R2_lm > 0.1)
-# # [1] 1309 1499 1808 1834 1929 1958
-# 
-# idx_R0.1 <- which(R2_lm > 0.1)
-# R2_lm0.1 <- R2_lm[idx_R0.1]
-# idx <- order(R2_lm0.1, decreasing = TRUE)
-# idx_dec_R0.1 <- idx_R0.1[idx]
-# 
-# # 2346  8441  5719  8306  2835  2477  2243  2945  8727  1929  2171  1808  9701  8710  
-# # 3039  3525  2040  5610  5659  3015  2413  9751  1309  2434  5092  5622  2292
-# 
-# i = 2243
-# plot(x[i, ], y[i, ])
-# idx <- order(x[i, ])
-# lines(x[i, ][idx], fit_scam_lm$maps[[i]]$model$fitted[idx], col = "red", lwd = 2)
-# 
-# scatter(i, x_scam, y_scam, pred = pred_scam_lm)
-# # df <- read.csv("my_data.csv")
-# R2_lm[i]
-# 
-# ### 对存在异方差的基因，画其原始散点图，残差图， res_model for lm, res_model for loess
 # 
 
+res2_model_lm <- fit_scam_r2_lm$maps[[i]]$res_model
 
 
 
@@ -341,13 +320,106 @@ write.csv(R2_data, file = "R2_data.csv", row.names = FALSE)
 
 
 
+# 1. log(res^2) VS log(|res|) which is better? ---------------------
+mean(R2_r2_lm)  # 0.0114345
+mean(R2_r2_loess) # 0.07986962
+# mean(R2_r_lm)   # 0.01095803
+# mean(R2_r_loess) # 0.07927829
+R2 <- read.csv("./pred/R2_summary.csv", row.names = 1)
+## summary: 0.0114345 > 0.01096105, so log(res^2) as dependent variable is better;
+
+idx_R0.1 <- which(R2_r2_loess > 0.2)
+R2_r2_lm0.1 <- R2_r2_loess[idx_R0.1]
+idx <- order(R2_r2_lm0.1, decreasing = TRUE)
+idx_dec_R0.1 <- idx_R0.1[idx]
+# 356 909 405 706 894 763
+# 909 823 406 370 631 878 135 661 659 356 187 405 763 524 819 706 388 764 917 344 225
+
+
+# 2. look as genes with heteroscedasticity ---------------------
+length(which(R2_r2_lm > 0.1)) # 6 
+length(which(R2_r2_loess > 0.2)) # 21
+
+
+which(R2_r2_lm > 0.1)
+# 356 405 706 763 894 909
+which(R2_r2_loess > 0.2)
+# 909 823 406 370 631 878 135 661 659 356 187 405 763 524 819 706 388 764 917 344 225
+
+
+i = 370
+R2_r2_loess[i]
+# raw data scatter plot
+plot(x[i, ], y[i, ], main = paste0("R^2: ", sprintf("%.3e", R2_r2_loess[i]), "  Gene index: ", i))
+idx <- order(x[i, ])
+lines(x[i, ][idx], fit_scam_r2_loess$maps[[i]]$model$fitted[idx], col = "red", lwd = 2)
+
+library(gridExtra)
+
+
+# Open pdf file 
+pdf(file = "scatter_plots_genes_loess_0.2.pdf")
+
+# draw plots 
+
+for (i in idx_dec_R0.1) {
+  pic <- plot(x[i, ], y[i, ], main = paste0(" Scatter plot of Gene: ", rownames(x)[i]) ,
+              xlab = "Log microarray intensity", ylab = "Log RNA-seq data")
+  print(pic)
+}
+dev.off()
+
+# 3. look at residual plot, loess would be suitable ---------------------
+# 356 405 706 763 894 909
+# 909 823 406 370 631 878 135 661 659 356 187 405 763 524 819 706 388 764 917 344 225
+# 823 388
+i = 356
+# residual plot for lm, which is monotonous
+log_res2_lm <- log(fit_scam_r2_lm$maps[[i]]$model$residuals^2 + 1e-5)
+plot(x[i, ], log_res2_lm, main = paste0("R^2: ", sprintf("%.3e", R2_r2_lm[i])), cex.main = 0.8)
+idx <- order(x[i, ])
+lines(x[i, ][idx], fit_scam_r2_lm$maps[[i]]$res_model$fitted.values[idx], col = "red", lwd = 2)
+
+# residual plot for loess, which is not monotonous
+log_res2_loess <- log(fit_scam_r2_loess$maps[[i]]$model$residuals^2 + 1e-5)
+plot(x[i, ], log_res2_loess, main = paste0("R^2: ", sprintf("%.3e", R2_r2_lm[i])), cex.main = 0.8)
+idx <- order(x[i, ])
+lines(x[i, ][idx], fit_scam_r2_loess$maps[[i]]$res_model$fitted[idx], col = "red", lwd = 2)
 
 
 
+# loess as residual model is much suitable 
+scatter(i, x_scam, y_scam, pred = pred_scam_r2_loess)
+scatter(i, x_scam, y_scam, pred = pred_scam_r2_lm)
+
+#
+
+
+# draw plots 
+pdf(file = "residual_plots_vs_plots_PI_6genes.pdf")
+for (i in idx_dec_R0.1) {
+  log_res2_lm <- log(fit_scam_r2_lm$maps[[i]]$model$residuals^2 + 1e-5)
+  log_res2_loess <- log(fit_scam_r2_loess$maps[[i]]$model$residuals^2 + 1e-5)
+  plot(x[i, ], log_res2_lm, main = paste0("Residual scatter plot of Gene: ", rownames(x)[i]),  
+       xlab = "Log Microarray intensity", ylab = "Log square of residual in scam ",cex.main = 0.8)
+  idx <- order(x[i, ])
+  lines(x[i, ][idx], fit_scam_r2_lm$maps[[i]]$res_model$fitted.values[idx], col = "blue", lwd = 2)
+  lines(x[i, ][idx], fit_scam_r2_loess$maps[[i]]$res_model$fitted[idx], col = "red", lwd = 2)
+  legend("topright", legend = c(paste0("lm", "  R^2: ", sprintf("%.3e", R2_r2_lm[i])),  
+                                paste0("loess", "  R^2: ",sprintf("%.3e", R2_r2_loess[i]))), 
+         col = c("blue", "red"), lty = 1, title = "Model type", cex = 0.8)
+  
+  scatter(i, x_scam, y_scam, pred = pred_scam_r2_lm, tittle = paste0("Scatter plot of gene: ", rownames(x)[i], "\n Prediction interval was generate by linear model"))
+    
+                       
+  scatter(i, x_scam, y_scam, pred = pred_scam_r2_loess, tittle = paste0("Scatter plot of gene: ", rownames(x)[i], "\n Prediction interval was generate by loess model")) 
+    
+}
+dev.off()
 
 
 
-
+load_all("../../array2rnaseq")
 
 
 # # predictions
