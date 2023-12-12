@@ -1,0 +1,178 @@
+---
+title: "report"
+author: "Bingqing Yang"
+date: "2023-12-08"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Figure out `log(res^2)` and `log(|res|)` which is better as dependent variable;
+
+* For 1000 genes which implement on shape constrained addictive model, calculate the residual of those model.
+
+* Implement linear model and loess model based on Log transformed square of residual and log transformed absolute of residual as dependent variable;
+
+
+```{r}
+# Reload data
+library(usethis)
+library(devtools)
+library(ggplot2)
+load_all("../../../array2rnaseq")
+
+
+fit_scam_r2_lm <- readRDS("../models/fit_scam_r2_lm.rds")
+fit_scam_r2_loess <- readRDS("../models/fit_scam_r2_loess.rds")
+fit_scam_r_lm <- readRDS("../models/fit_scam_r_lm.rds")
+fit_scam_r_loess <- readRDS("../models/fit_scam_r_loess.rds")
+
+# PI for diff models
+pred_scam_r2_lm <- readRDS("../pred/pred_scam_r2_lm.rds")
+pred_scam_r2_loess <- readRDS("../pred/pred_scam_r2_loess.rds")
+pred_scam_r_lm <- readRDS("../pred/pred_scam_r_lm.rds")
+pred_scam_r_loess <- readRDS("../pred/pred_scam_r_loess.rds")
+
+# R^2 summary of residual data
+R2 <- read.csv("../pred/R2_summary.csv", row.names = 1)
+
+# Microarray intensify and RNA-seq data
+x <- readRDS("../data/x_1000.rds")
+y <- readRDS("../data/y_1000.rds")
+dim(x)
+```
+
+* Calculate mean square of R in two function, because mean of R square in $log(res^2)$ is larger than $log(|res|)$ no matter in linear model or loess model. So using $log(res^2)$ as dependent variable;
+
+```{r}
+# Calculate mean of R square in diff dependent vaiable and models
+colMeans(R2)
+```
+
+## 2. Look at genes with heteroscedasticity;
+
+Only considering $log(res^2)$ as dependent variable, implement `lm(log(res^2) ~ x)` and `loess(log(res^2) ~ x)` for each gene. Then calculate $R^2$ of each gene in diff models.  
+
+
+### Select genes of whom $R^2$ > 0.1 of `lm(log(res^2) ~ x)`, which has 6 genes;  
+
+```{r}
+# gene name
+gene_lm_lst <- rownames(R2)[R2$R2_r2_lm > 0.1]
+print(gene_lm_lst)
+
+# gene index
+idx_R0.1 <- which(R2$R2_r2_lm > 0.1) 
+print(idx_R0.1)
+```
+
+
+
+```{r}
+# look at the scatter plot of selected genes, check if there is heteroscedasticity
+for (i in idx_R0.1) {
+  pic <- plot(x[i, ], y[i, ], main = paste0(" Scatter plot of Gene: ", rownames(x)[i]), 
+              xlab = "Log microarray intensity", ylab = "Log RNA-seq data")
+}
+```
+
+
+### Select genes of whom $R^2$ > 0.2 of `loess(log(res^2 ~ x)`, which has 21 genes;
+
+```{r}
+# gene name
+gene_loess_lst <- rownames(R2)[R2$R2_r2_loess > 0.2]
+print(gene_loess_lst)
+
+# gene index
+idx_R0.2 <- which(R2$R2_r2_loess > 0.2)
+print(idx_R0.2)
+```
+
+
+
+```{r}
+# look at the scatter plot of selected genes, check if there is heteroscedasticity
+for (i in idx_R0.2) {
+  pic <- plot(x[i, ], y[i, ], main = paste0(" Scatter plot of Gene: ", rownames(x)[i]), xlab = "Log microarray intensity", ylab = "Log RNA-seq data")
+}
+```
+
+
+
+
+
+
+## 3. Using loess to fit residual model  
+
+Using linear model to fit residual model isn't appropriate because it is monotonous, which showed in the prediction interval as either increase gradually or decrease in width. But the variance of our data maybe increasing in the beginning and then decreasing. So I use nonlinear model to fit residual model, like loess.
+
+
+### Look at scatter plot of selected genes which satisfy $R^2$ > 0.1 in `lm(log(res^2 ~ x)`;
+
+There 6 genes, each plot shows:  
+
+* Residual plot with lm and loess;  
+
+* Raw data scatter plot with prediction interval using lm;  
+
+* Raw data scatter plot with prediction interval using loess;
+
+```{r}
+for (i in idx_R0.1) {
+  log_res2 <- log(fit_scam_r2_lm$maps[[i]]$model$residuals^2 + 1e-5)
+  plot(x[i, ], log_res2, main = paste0("Residual scatter plot of Gene: ", rownames(x)[i]),  
+       xlab = "Log Microarray intensity", ylab = "Log square of residual in scam ",cex.main = 0.8)
+  idx <- order(x[i, ])
+  lines(x[i, ][idx], fit_scam_r2_lm$maps[[i]]$res_model$fitted.values[idx], col = "blue", lwd = 2)
+  lines(x[i, ][idx], fit_scam_r2_loess$maps[[i]]$res_model$fitted[idx], col = "red", lwd = 2)
+  legend("topright", legend = c(paste0("lm", "  R^2: ", sprintf("%.3e", R2$R2_r2_lm[i])),  
+                                paste0("loess", "  R^2: ",sprintf("%.3e", R2$R2_r2_loess[i]))), 
+         col = c("blue", "red"), lty = 1, title = "Model type", cex = 0.8)
+  
+  scatter(i, x, y, pred = pred_scam_r2_lm, tittle = paste0("Scatter plot of gene: ", rownames(x)[i], "\n Prediction interval was generate by linear model"))
+    
+                       
+  scatter(i, x, y, pred = pred_scam_r2_loess, tittle = paste0("Scatter plot of gene: ", rownames(x)[i], "\n Prediction interval was generate by loess model")) 
+    
+}
+```
+
+
+### Look at scatter plot of selected genes which satisfy $R^2$ > 0.2 in `loess(log(res^2 ~ x)`;
+
+There 21 genes, each plot shows:  
+
+* Residual plot with lm and loess;  
+
+* Raw data scatter plot with prediction interval using lm;  
+
+* Raw data scatter plot with prediction interval using loess;
+
+```{r}
+for (i in idx_R0.2) {
+  log_res2 <- log(fit_scam_r2_lm$maps[[i]]$model$residuals^2 + 1e-5)
+  plot(x[i, ], log_res2, main = paste0("Residual scatter plot of Gene: ", rownames(x)[i]),  
+       xlab = "Log Microarray intensity", ylab = "Log square of residual in scam ",cex.main = 0.8)
+  idx <- order(x[i, ])
+  lines(x[i, ][idx], fit_scam_r2_lm$maps[[i]]$res_model$fitted.values[idx], col = "blue", lwd = 2)
+  lines(x[i, ][idx], fit_scam_r2_loess$maps[[i]]$res_model$fitted[idx], col = "red", lwd = 2)
+  legend("topright", legend = c(paste0("lm", "  R^2: ", sprintf("%.3e", R2$R2_r2_lm[i])),  
+                                paste0("loess", "  R^2: ",sprintf("%.3e", R2$R2_r2_loess[i]))), 
+         col = c("blue", "red"), lty = 1, title = "Model type", cex = 0.8)
+  
+  scatter(i, x, y, pred = pred_scam_r2_lm, tittle = paste0("Scatter plot of gene: ", rownames(x)[i], "\n Prediction interval was generate by linear model"))
+    
+                       
+  scatter(i, x, y, pred = pred_scam_r2_loess, tittle = paste0("Scatter plot of gene: ", rownames(x)[i], "\n Prediction interval was generate by loess model")) 
+    
+}
+
