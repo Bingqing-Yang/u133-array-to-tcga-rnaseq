@@ -42,8 +42,8 @@ y_scam <- rseq.f[which(models =='scam'), ][1:1000, ]
 probes_scam <- probes[which(models =='scam'), ][1:1000, ]
 models_scam <- select_models(x_scam, y_scam);
 table(models_scam) # lm:0  scam: 10298
-saveRDS(x_scam, "./data/x_1000.rds")
-saveRDS(y_scam, "./data/y_1000.rds")
+# saveRDS(x_scam, "./data/x_1000.rds")
+# saveRDS(y_scam, "./data/y_1000.rds")
 
 
 # # save scam model that the residual model based on lm 
@@ -70,10 +70,10 @@ pred_scam_r2_loess <- predict.array2rnaseq(fit_scam_r2_loess$maps, new_data = x_
 pred_scam_r_lm <- predict.array2rnaseq(fit_scam_r_lm$maps, new_data = x_scam, res_type = "res_abs", model_type = "lm")
 pred_scam_r_loess <- predict.array2rnaseq(fit_scam_r_loess$maps, new_data = x_scam, res_type = "res_abs", model_type = "loess")
 
-saveRDS(pred_scam_r2_lm, "./pred/pred_scam_r2_lm.rds")
-saveRDS(pred_scam_r2_loess, "./pred/pred_scam_r2_loess.rds")
-saveRDS(pred_scam_r_lm, "./pred/pred_scam_r_lm.rds")
-saveRDS(pred_scam_r_loess, "./pred/pred_scam_r_loess.rds")
+# saveRDS(pred_scam_r2_lm, "./pred/pred_scam_r2_lm.rds")
+# saveRDS(pred_scam_r2_loess, "./pred/pred_scam_r2_loess.rds")
+# saveRDS(pred_scam_r_lm, "./pred/pred_scam_r_lm.rds")
+# saveRDS(pred_scam_r_loess, "./pred/pred_scam_r_loess.rds")
 
 
 pred_scam_r2_lm <- readRDS("./pred/pred_scam_r2_lm.rds")
@@ -133,28 +133,15 @@ for (i in 1:nrow(x)) {
   # readline("Enter to continue: ")
 }
 
-R2_summary <- data.frame(
-  R2_r2_lm = R2_r2_lm,
-  R2_r2_loess = R2_r2_loess,
-  R2_r_lm = R2_r_lm,
-  R2_r_loess = R2_r_loess,
-  row.names = rownames(x)
-)
-# 
-write.csv(R2_summary, file = "./pred/R2_summary.csv", row.names = TRUE)
+# R2 <- data.frame(
+#   R2_r2_lm = R2_r2_lm,
+#   R2_r2_loess = R2_r2_loess,
+#   R2_r_lm = R2_r_lm,
+#   R2_r_loess = R2_r_loess,
+#   row.names = rownames(x)
+# )
 
-# 
-
-res2_model_lm <- fit_scam_r2_lm$maps[[i]]$res_model
-
-
-
-
-
-
-
-
-
+# write.csv(R2, file = "./pred/R2_summary.csv", row.names = 1)
 
 
 # 1. log(res^2) VS log(|res|) which is better? ---------------------
@@ -162,14 +149,17 @@ mean(R2_r2_lm)  # 0.0114345
 mean(R2_r2_loess) # 0.07986962
 # mean(R2_r_lm)   # 0.01095803
 # mean(R2_r_loess) # 0.07927829
-R2 <- read.csv("./pred/R2_summary.csv", row.names = 1)
 ## summary: 0.0114345 > 0.01096105, so log(res^2) as dependent variable is better;
 
-idx_R0.1 <- which(R2_r2_loess > 0.2)
-R2_r2_lm0.1 <- R2_r2_loess[idx_R0.1]
+idx_R0.1 <- which(R2_r2_lm > 0.1)
+R2_r2_lm0.1 <- R2_r2_lm[idx_R0.1]
 idx <- order(R2_r2_lm0.1, decreasing = TRUE)
 idx_dec_R0.1 <- idx_R0.1[idx]
 # 356 909 405 706 894 763
+
+idx_R0.2 <- which(R2_r2_loess > 0.2)
+idx <- order(R2_r2_loess[idx_R0.2], decreasing = TRUE)
+idx_dec_R0.2 <- idx_R0.2[idx]
 # 909 823 406 370 631 878 135 661 659 356 187 405 763 524 819 706 388 764 917 344 225
 
 
@@ -184,21 +174,10 @@ which(R2_r2_loess > 0.2)
 # 909 823 406 370 631 878 135 661 659 356 187 405 763 524 819 706 388 764 917 344 225
 
 
-i = 370
-R2_r2_loess[i]
-# raw data scatter plot
-plot(x[i, ], y[i, ], main = paste0("R^2: ", sprintf("%.3e", R2_r2_loess[i]), "  Gene index: ", i))
-idx <- order(x[i, ])
-lines(x[i, ][idx], fit_scam_r2_loess$maps[[i]]$model$fitted[idx], col = "red", lwd = 2)
+# look at scatter plot of genes selected by lm, R^2 > 0.1
+pdf(file = "scatter_plots_genes_lm_.1.pdf")
 
-library(gridExtra)
-
-
-# Open pdf file 
-pdf(file = "scatter_plots_genes_loess_0.2.pdf")
-
-# draw plots 
-
+# draw scatter plots 
 for (i in idx_dec_R0.1) {
   pic <- plot(x[i, ], y[i, ], main = paste0(" Scatter plot of Gene: ", rownames(x)[i]) ,
               xlab = "Log microarray intensity", ylab = "Log RNA-seq data")
@@ -206,34 +185,43 @@ for (i in idx_dec_R0.1) {
 }
 dev.off()
 
+
+
+# look at scatter plot of genes selected by loess, R^2 > 0.2
+pdf(file = "scatter_plots_genes_loess_.2.pdf")
+
+for (i in idx_dec_R0.2) {
+  pic <- plot(x[i, ], y[i, ], main = paste0(" Scatter plot of Gene: ", rownames(x)[i]) ,
+              xlab = "Log microarray intensity", ylab = "Log RNA-seq data")
+  print(pic)
+}
+dev.off()
+
 # 3. look at residual plot, loess would be suitable ---------------------
-# 356 405 706 763 894 909
-# 909 823 406 370 631 878 135 661 659 356 187 405 763 524 819 706 388 764 917 344 225
-# 823 388
-i = 356
-# residual plot for lm, which is monotonous
-log_res2_lm <- log(fit_scam_r2_lm$maps[[i]]$model$residuals^2 + 1e-5)
-plot(x[i, ], log_res2_lm, main = paste0("R^2: ", sprintf("%.3e", R2_r2_lm[i])), cex.main = 0.8)
-idx <- order(x[i, ])
-lines(x[i, ][idx], fit_scam_r2_lm$maps[[i]]$res_model$fitted.values[idx], col = "red", lwd = 2)
+# # 356 405 706 763 894 909
+# # 909 823 406 370 631 878 135 661 659 356 187 405 763 524 819 706 388 764 917 344 225
+# # 823 388
+# i = 356
+# # residual plot for lm, which is monotonous
+# log_res2_lm <- log(fit_scam_r2_lm$maps[[i]]$model$residuals^2 + 1e-5)
+# plot(x[i, ], log_res2_lm, main = paste0("R^2: ", sprintf("%.3e", R2_r2_lm[i])), cex.main = 0.8)
+# idx <- order(x[i, ])
+# lines(x[i, ][idx], fit_scam_r2_lm$maps[[i]]$res_model$fitted.values[idx], col = "red", lwd = 2)
+# 
+# # residual plot for loess, which is not monotonous
+# log_res2_loess <- log(fit_scam_r2_loess$maps[[i]]$model$residuals^2 + 1e-5)
+# plot(x[i, ], log_res2_loess, main = paste0("R^2: ", sprintf("%.3e", R2_r2_lm[i])), cex.main = 0.8)
+# idx <- order(x[i, ])
+# lines(x[i, ][idx], fit_scam_r2_loess$maps[[i]]$res_model$fitted[idx], col = "red", lwd = 2)
+# 
+# 
+# 
+# # loess as residual model is much suitable 
+# scatter(i, x_scam, y_scam, pred = pred_scam_r2_loess)
+# scatter(i, x_scam, y_scam, pred = pred_scam_r2_lm)
 
-# residual plot for loess, which is not monotonous
-log_res2_loess <- log(fit_scam_r2_loess$maps[[i]]$model$residuals^2 + 1e-5)
-plot(x[i, ], log_res2_loess, main = paste0("R^2: ", sprintf("%.3e", R2_r2_lm[i])), cex.main = 0.8)
-idx <- order(x[i, ])
-lines(x[i, ][idx], fit_scam_r2_loess$maps[[i]]$res_model$fitted[idx], col = "red", lwd = 2)
-
-
-
-# loess as residual model is much suitable 
-scatter(i, x_scam, y_scam, pred = pred_scam_r2_loess)
-scatter(i, x_scam, y_scam, pred = pred_scam_r2_lm)
-
-#
-
-
-# draw plots 
-pdf(file = "residual_plots_vs_plots_PI_6genes.pdf")
+ 
+pdf(file = "residual_plots_vs_plots_PI_lm_.1.pdf")
 for (i in idx_dec_R0.1) {
   log_res2_lm <- log(fit_scam_r2_lm$maps[[i]]$model$residuals^2 + 1e-5)
   log_res2_loess <- log(fit_scam_r2_loess$maps[[i]]$model$residuals^2 + 1e-5)
@@ -256,7 +244,7 @@ dev.off()
 
 
 
-load_all("../../array2rnaseq")
+
 
 
 # # predictions
