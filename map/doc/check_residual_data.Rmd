@@ -1,6 +1,5 @@
 ---
-title: "report"
-author: "Bingqing Yang"
+title: "lm or loess as residual model"
 date: "2023-12-08"
 output:
   pdf_document:
