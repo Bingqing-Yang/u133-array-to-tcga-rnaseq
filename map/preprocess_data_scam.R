@@ -55,16 +55,16 @@ fit_scam_r_loess_noexp <- array2rnaseq(x_scam, y_scam, models = models_scam, res
 
 # ---- save model ----
 
-saveRDS(fit_scam_r2_loess, "./models/fit_scam_r2_loess_1000_lowss_aic.rds")
-saveRDS(fit_scam_r2_loess_noexp, "./models/fit_scam_r2_loess_noexp_1000_lowss_aic.rds")
-saveRDS(fit_scam_r_loess, "./models/fit_scam_r_loess_1000_lowss_aic.rds")
-saveRDS(fit_scam_r_loess_noexp, "./models/fit_scam_r_loess_noexp_1000_lowss_aic.rds")
-
-
-fit_scam_r2_loess <- readRDS("./models/fit_scam_r2_loess.rds")
-fit_scam_r2_loess_noexp <- readRDS("./models/fit_scam_r2_loess_noexp.rds")
-fit_scam_r_loess <- readRDS("./models/fit_scam_r_loess.rds")
-fit_scam_r_loess_noexp <- readRDS("./models/fit_scam_r_loess_noexp.rds")
+saveRDS(fit_scam_r2_loess, "./models/fit_scam_r2_loess.rds")
+saveRDS(fit_scam_r2_loess_noexp, "./models/fit_scam_r2_loess_noexp.rds")
+saveRDS(fit_scam_r_loess, "./models/fit_scam_r_loess.rds")
+saveRDS(fit_scam_r_loess_noexp, "./models/fit_scam_r_loess_noexp.rds")
+# 
+# 
+# fit_scam_r2_loess <- readRDS("./models/fit_scam_r2_loess.rds")
+# fit_scam_r2_loess_noexp <- readRDS("./models/fit_scam_r2_loess_noexp.rds")
+# fit_scam_r_loess <- readRDS("./models/fit_scam_r_loess.rds")
+# fit_scam_r_loess_noexp <- readRDS("./models/fit_scam_r_loess_noexp.rds")
 
 
 # ----------------
@@ -138,6 +138,7 @@ boxplot_res_model <- ggplot(data = data_test_aic, mapping = aes(
   theme(axis.text = element_text(size = 10),
         axis.title = element_text(size = 16))
 print(boxplot_res_model)
+dir.create("./plots/")
 ggsave("./plots/boxplot_res_model.png",width = 10, height = 6, dpi = 300)
 
 
