@@ -37,12 +37,8 @@ J <- nrow(marr.f);
 models <- select_models(marr.f, rseq.f);
 table(models)
 
-<<<<<<< HEAD
-# select gene fitted on lm
 
-=======
-# select linear genes
->>>>>>> 29e8ff1d864e35745571b4badd412321a0721b95
+# select gene fitted on lm
 x_lm <- marr.f[which(models =='lm'), ][1:10, ]
 y_lm <- rseq.f[which(models =='lm'), ][1:10, ]
 probes_lm <- probes[which(models =='lm'), ][1:10, ]
