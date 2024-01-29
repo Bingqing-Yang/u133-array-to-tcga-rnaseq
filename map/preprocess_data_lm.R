@@ -103,34 +103,36 @@ mean(ratio_r_loess)  # 0.3742358   0.7992767
 ratio_r_loess_noexp <- rate_interval(object = lm_r_loess_noexp$maps, X = x_lm, Y = y_lm,
                                      res_type = "res_abs", model_type = "loess", log = FALSE, level = 0.95)
 
-# # generate scatter plot of diff model
-# pdf(file = "./plots/lm_r2_loess.pdf")
-# for (i in 1:nrow(x_lm)) {
-#   pic <- combine_scatter(i, x_lm, y_lm, lm_r2_loess, res_type = "res2", model_type = "loess", log = TRUE, level = 0.95)
-#   print(pic)
-# }
-# dev.off()
-# 
-# pdf(file = "./plots/lm_r2_loess_noexp.pdf")
-# for (i in 1:nrow(x_lm)) {
-#   pic <- combine_scatter(i, x_lm, y_lm, lm_r2_loess_noexp, res_type = "res2", model_type = "loess", log = FALSE, level = 0.95)
-#   print(pic)
-# }
-# dev.off()
-# 
-# pdf(file = "./plots/lm_r_loess.pdf")
-# for (i in 1:nrow(x_lm)) {
-#   pic <- combine_scatter(i, x_lm, y_lm, lm_r_loess, res_type = "res_abs", model_type = "loess", log = TRUE, level = 0.95)
-#   print(pic)
-# }
-# dev.off()
-# 
-# pdf(file = "lm_r_loess_noexp.pdf")
-# for (i in 1:nrow(x_lm)) {
-#   pic <- combine_scatter(i, x_lm, y_lm, lm_r_loess_noexp, res_type = "res_abs", model_type = "loess", log = FALSE, level = 0.95)
-#   print(pic)
-# }
-# dev.off()
+# generate scatter plot of diff model
+dir.create("./plots/")
+pdf(file = "./plots/lm_r2_loess.pdf")
+for (i in 1:nrow(x_lm)) {
+  pic <- combine_scatter(i, x_lm, y_lm, lm_r2_loess, res_type = "res2", model_type = "loess", log = TRUE, level = 0.95)
+  print(pic)
+}
+dev.off()
+
+
+pdf(file = "./plots/lm_r2_loess_noexp.pdf")
+for (i in 1:nrow(x_lm)) {
+  pic <- combine_scatter(i, x_lm, y_lm, lm_r2_loess_noexp, res_type = "res2", model_type = "loess", log = FALSE, level = 0.95)
+  print(pic)
+}
+dev.off()
+
+pdf(file = "./plots/lm_r_loess.pdf")
+for (i in 1:nrow(x_lm)) {
+  pic <- combine_scatter(i, x_lm, y_lm, lm_r_loess, res_type = "res_abs", model_type = "loess", log = TRUE, level = 0.95)
+  print(pic)
+}
+dev.off()
+
+pdf(file = "lm_r_loess_noexp.pdf")
+for (i in 1:nrow(x_lm)) {
+  pic <- combine_scatter(i, x_lm, y_lm, lm_r_loess_noexp, res_type = "res_abs", model_type = "loess", log = FALSE, level = 0.95)
+  print(pic)
+}
+dev.off()
 
 
 
