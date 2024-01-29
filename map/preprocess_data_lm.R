@@ -37,8 +37,12 @@ J <- nrow(marr.f);
 models <- select_models(marr.f, rseq.f);
 table(models)
 
+<<<<<<< HEAD
 # select gene fitted on lm
 
+=======
+# select linear genes
+>>>>>>> 29e8ff1d864e35745571b4badd412321a0721b95
 x_lm <- marr.f[which(models =='lm'), ][1:10, ]
 y_lm <- rseq.f[which(models =='lm'), ][1:10, ]
 probes_lm <- probes[which(models =='lm'), ][1:10, ]
@@ -86,6 +90,7 @@ pred_lm_r_loess_noexp <- predict.array2rnaseq(lm_r_loess_noexp$maps, new_data = 
 
 
 
+
 # calculate the rate of points fall in PI
 ratio_r2_loess <- rate_interval(object = lm_r2_loess$maps, X = x_lm, Y = y_lm,
                                 res_type = "res2", model_type = "loess", level = 0.95)
@@ -101,13 +106,6 @@ mean(ratio_r_loess)  # 0.3742358   0.7992767
 
 ratio_r_loess_noexp <- rate_interval(object = lm_r_loess_noexp$maps, X = x_lm, Y = y_lm,
                                      res_type = "res_abs", model_type = "loess", log = FALSE, level = 0.95)
-mean(ratio_r_loess_noexp)  # 0.4607767   0.9151382
-
-
-
-
-
-
 
 # # generate scatter plot of diff model
 # pdf(file = "./plots/lm_r2_loess.pdf")
@@ -176,11 +174,7 @@ table(apply(aic_data, 1, which.min))
 # 141  13
 
 
-# 
-# hist(aic_data$aic_r2_loess_noexp, breaks = 100)
-# hist(aic_data$aic_r2_loess, breaks = 100)
-# hist(aic_data$aic_r_loess_noexp, breaks = 100)
-# hist(aic_data$aic_r_loess, breaks = 100)
+
 
 
 # prepare data
@@ -210,12 +204,10 @@ bartlett.test(AIC ~ Model_name, data = aic_plot) # not equal variance
 
 # non-parametric alternative to one-way ANOVA test
 # https://bookdown.org/thomas_pernet/Tuto/non-parametric-tests.html
-# p-value < alpha, there are significant differences between the residual models
 # but do not know which pairs of models are different
 kruskal.test(AIC ~ Model_name, data = aic_plot)  # p-value < alpha
 
 # calculate pairwise comparisons between residual models
-# all pairwise comparisons are different expect for r2_loess_noexp and r_loess_noexp
 pairwise.wilcox.test(aic_plot$AIC, aic_plot$Model_name,
                      p.adjust.method = "BH")
 
