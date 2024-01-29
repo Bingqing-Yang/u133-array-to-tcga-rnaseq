@@ -54,7 +54,7 @@ fit_scam_r_loess <- array2rnaseq(x_scam, y_scam, models = models_scam, res_type 
 fit_scam_r_loess_noexp <- array2rnaseq(x_scam, y_scam, models = models_scam, res_type = "res_abs", model_type = "loess", log = FALSE)
 
 # ---- save model ----
-
+dir.create("./models/")
 saveRDS(fit_scam_r2_loess, "./models/fit_scam_r2_loess.rds")
 saveRDS(fit_scam_r2_loess_noexp, "./models/fit_scam_r2_loess_noexp.rds")
 saveRDS(fit_scam_r_loess, "./models/fit_scam_r_loess.rds")
